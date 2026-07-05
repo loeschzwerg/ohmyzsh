@@ -1,5 +1,6 @@
 # custom files
-custom/
+# custom/
+.zshrc
 
 # temp files directories
 cache/
