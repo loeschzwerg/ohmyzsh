@@ -1,3 +1,9 @@
+# healthcheck.zsh
+
+if [[ $- == *i* ]] ; then
+  echo ". $0: $*"
+fi
+
 function check-health () {
   set +o pipefail
   set +o errexit
