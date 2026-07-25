@@ -106,10 +106,11 @@ function dtl::prompt() {
 }
 
 # primary prompt: dashed separator, directory and vcs info
-PS1=$'%F237%(l.$(afmagic_dashes)..─.)}%f\n'
-PS1+=$'%F32%~$(git_prompt_info)$(hg_prompt_info) %F105%?%f '
+PS1=$'%237F%(l.%(afmagic_dashes)..─.)%f\n'
+PS1+=$'%32F%~$(git_prompt_info)$(hg_prompt_info) %105F%?%f '
 PS2="%F1\ %f"
 
+PS1=$'%255K %254K %253K %252K% %251K %250K %249K %248K %247K %246K %245K %244K %243K %242K %241K %240K %239K %238K %237K %236K %235K %234K %233K %232K'
 # right prompt: return code, virtualenv and context (user@host)
 RPS1="%(?..%{$fg[red]%}%? ↵%{$reset_color%})"
 if (( $+functions[virtualenv_prompt_info] )); then
@@ -117,5 +118,7 @@ if (( $+functions[virtualenv_prompt_info] )); then
 fi
 RPS1+=" ${FG[237]}%n@%m%{$reset_color%}"
 PROMPT=$'$(git_prompt_info)'
+
+add-zsh-hook chpwd ls # after cd execute ls
 
 # vim: textwidth=80 shiftwidth=4 smarttab
