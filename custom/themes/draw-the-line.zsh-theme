@@ -8,6 +8,8 @@ PROMPT="%{$fg[red]%}%n%{$reset_color%}@%{$fg[blue]%}%m %{$fg[yellow]%}%~ %{$rese
 # ref: terminfo(5)
 # ref: stty(1)
 # ref: zshmisc(1) SIMPLE_PROMPT_ESCAPES
+# ref: zshall(1)
+
 # login
 P_TTY='%l'          # %y
 P_MACHINE='%m'      # %M
@@ -16,7 +18,7 @@ P_USER='%n'
 # state
 P_PRIV='%#'
 P_RETURN='%?'
-P_PARSER='%0_'      # %^
+P_PARSER='%0_'      # %^ current parser shell construct (if, for, QUOTE, ..)
 P_CWD='%/'          # %d | %~ | %c | %. | %C
 P_EVALDEPTH='%e'
 P_EVALLINE='%i'
@@ -48,6 +50,7 @@ P_TRUNC='%10<...<%~%<<%#' # truncated dir with appended %/#
 
 
 # prompt
+THEME_NAME="DTL"
 anchor=$THEME_NAME
 LINE=$'%F{blue}${(l.((${COLUMNS}-${#THEME_NAME}-5))..─.)}$reset_color $THEME_NAME $fg[blue]───$reset_color'
 
@@ -105,20 +108,118 @@ function dtl::prompt() {
     'STASHED'   "$ZSH_THEME_GIT_PROMPT_STASHED"
 }
 
-# primary prompt: dashed separator, directory and vcs info
-PS1=$'%237F%(l.%(afmagic_dashes)..─.)%f\n'
-PS1+=$'%32F%~$(git_prompt_info)$(hg_prompt_info) %105F%?%f '
-PS2="%F1\ %f"
+#     1234567890123456789
+BOX=$'╷╶┌╴┐─┬╵│└├┘┤┴┼╭╮╰╯' # NOTE: ZSH-Indexing: 1..
+DOT=$'·'
+BOXC=${DOT}                # Center
+# Order: L R T D - Left Right Top Down
+BOXLR=${BOX[6]}
+BOXL=${BOX[4]}
+BOXR=${BOX[2]}
+BOXTD=${BOX[9]}
+BOXT=${BOX[8]}
+BOXD=${BOX[1]}
+BOXRT=${BOX[18]}
+BOXRD=${BOX[16]}
+BOXLT=${BOX[19]}
+BOXLD=${BOX[17]}
+BOXRTD=${BOX[11]}
 
-PS1=$'%255K %254K %253K %252K% %251K %250K %249K %248K %247K %246K %245K %244K %243K %242K %241K %240K %239K %238K %237K %236K %235K %234K %233K %232K'
+# DATE="%{%B%D${BOXC}%T%b%14G%}"
+DATE="%B%D${BOXC}%*%b"
+# RET_CODE=$'%{%(?.%5F.%1F)%B%?%b%f%3G%}' # Always display colored %? return code
+RET_CODE=$'%(?.%5F.%1F)%B%?%b%f' # Always display colored %? return code
+
+function color_matrix () {
+    local colors="  0 "
+    for i in {0..255} ; do
+        colors+="%${i}K "
+        case $i in 
+            (15|51|87|123|159|195|231)
+                # 0-15 primary
+                # 6*6*6 colors
+                # 24 shades of grey
+                colors+="%k ${(r:3:)i}\n${(l:3:)$((i + 1))} "
+                ;;
+            (255)
+                colors+="%k 255"
+                ;;
+            (*)
+                ;;
+        esac
+    done
+    print -P "$colors"
+}
+
+
+function dtl::rule () {
+    local __lw_off="\e[?7l" # disable line wrapping
+    local __lw_on="\e[?7h" # enable line wrapping
+    local cols=$(tput cols)
+    # FIXME: the prefix-replacement is on raw strings
+    # NOTE: replacement MUST be literal
+    local prefix=${1}
+    local count=${#prefix}
+    local final="$prefix${(r(cols)(─))BOXLR}" 
+    print -n $__lw_off
+
+    print -P "%[>]%4F$final%f"  # %[>] enables truncation
+    print -n $__lw_on
+}
+
+PROMPT_BANG=1 # If the PROMPT_BANG option is set, a '!' in the prompt is replaced by the current history event number.  A literal '!' may then be represented as '!!'.
+
+PS1=''
+PS1+="%4F${BOXTD} " # continue box
+# PS1+=$'%2F%~ '
+PS1+=$' $(git_prompt_info)'
+PS1+="${RET_CODE} "
+
 # right prompt: return code, virtualenv and context (user@host)
-RPS1="%(?..%{$fg[red]%}%? ↵%{$reset_color%})"
-if (( $+functions[virtualenv_prompt_info] )); then
-  RPS1+='$(virtualenv_prompt_info)'
-fi
-RPS1+=" ${FG[237]}%n@%m%{$reset_color%}"
-PROMPT=$'$(git_prompt_info)'
+RPS1=''
+# RPS1="%(?..%{$fg[red]%}%?↵ %{$reset_color%})"
+# RPS1+=$'%237F$(git_prompt_info)%f '
+RPS1+="%237F%n@%M%f"
+# if (( $+functions[virtualenv_prompt_info] )); then
+#   RPS1+='$(virtualenv_prompt_info)'
+# fi
 
-add-zsh-hook chpwd ls # after cd execute ls
+PS2="%4F${BOXRTD}%3F%B%_%b%f"
+RPS2="%3F%B%^%b%f"
+
+PS4="%4F${BOXRTD}%3F%x:%i>"
+
+# RPS2=$RPROMPT2
+## Spelling correction
+# SPROMPT 
+
+function dtl::chpwd () {
+    print "CHPWD"
+    # =ls # =x resolve x to path
+    ls
+}
+
+function dtl::precmd () {
+    # NOTE: does not support git_prompt_info (maybe because it is executed async)
+    # local precmd_prefix="${BOX[16]}${BOX[4]}PRECMD${BOX24}${DATE}${BOX24}!%!${BOX24}%(1j.%B.)%%%j%b"
+    local precmd_prefix="${BOXRD}"
+    precmd_prefix+="${BOXL}${DATE}${BOXR}"
+    precmd_prefix+="${BOXL}!%!${BOXR}" #
+    precmd_prefix+="${BOXL}%(1j.%B.)%%%j%b${BOXR}" # >=1 job
+    precmd_prefix+="${BOXL}%6F%B%~%b%4F${BOXR}"
+    print
+    dtl::rule "$precmd_prefix"
+}
+
+function dtl::preexec () {
+    # local preexec_prefix="${BOX[18]}${BOX[4]}PREEXEC${BOX[2]}${BOX[4]}${DATE}"
+    local preexec_prefix="${BOXRT}${BOXL}${DATE}${BOXR}"
+    dtl::rule "$preexec_prefix"
+    print
+}
+
+# add-zsh-hook chpwd dtl::chpwd # after cd execute ls
+add-zsh-hook precmd dtl::precmd # execute precmd
+add-zsh-hook preexec dtl::preexec # execute preexec
 
 # vim: textwidth=80 shiftwidth=4 smarttab
