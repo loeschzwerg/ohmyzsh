@@ -128,7 +128,7 @@ BOXRTD=${BOX[11]}
 # DATE="%{%B%D${BOXC}%T%b%14G%}"
 DATE="%B%D${BOXC}%*%b"
 # RET_CODE=$'%{%(?.%5F.%1F)%B%?%b%f%3G%}' # Always display colored %? return code
-RET_CODE=$'%(?.%5F.%1F)%B%?%b%f' # Always display colored %? return code
+RET_CODE=$' %(?.%5F.%1F)%B%?%b%f' # Always display colored %? return code
 
 function color_matrix () {
     local colors="  0 "
@@ -152,6 +152,34 @@ function color_matrix () {
 }
 
 
+
+PROMPT_BANG=1 # If the PROMPT_BANG option is set, a '!' in the prompt is replaced by the current history event number.  A literal '!' may then be represented as '!!'.
+
+PS1=''
+PS1+="%4F${BOXTD} " # continue box
+# PS1+=$'%2F%~ '
+# PS1+=$' $(git_prompt_info)'
+PS1+=$'$(git_prompt_info)'
+PS1+="${RET_CODE} "
+
+# right prompt: return code, virtualenv and context (user@host)
+RPS1=''
+# RPS1="%(?..%{$fg[red]%}%?↵ %{$reset_color%})"
+# RPS1+=$'%237F$(git_prompt_info)%f '
+RPS1+="%237F%n@%M%f"
+# if (( $+functions[virtualenv_prompt_info] )); then
+#   RPS1+='$(virtualenv_prompt_info)'
+# fi
+
+PS2="%4F${BOXRTD}${BOXLR}${BOXL}%3F%B%_%b%f"
+RPS2="%3F%B%^%b%f"
+
+PS4="%4F${BOXRTD}%3F%x:%i>"
+
+# RPS2=$RPROMPT2
+## Spelling correction
+# SPROMPT 
+
 function dtl::rule () {
     local __lw_off="\e[?7l" # disable line wrapping
     local __lw_on="\e[?7h" # enable line wrapping
@@ -165,38 +193,6 @@ function dtl::rule () {
 
     print -P "%[>]%4F$final%f"  # %[>] enables truncation
     print -n $__lw_on
-}
-
-PROMPT_BANG=1 # If the PROMPT_BANG option is set, a '!' in the prompt is replaced by the current history event number.  A literal '!' may then be represented as '!!'.
-
-PS1=''
-PS1+="%4F${BOXTD} " # continue box
-# PS1+=$'%2F%~ '
-PS1+=$' $(git_prompt_info)'
-PS1+="${RET_CODE} "
-
-# right prompt: return code, virtualenv and context (user@host)
-RPS1=''
-# RPS1="%(?..%{$fg[red]%}%?↵ %{$reset_color%})"
-# RPS1+=$'%237F$(git_prompt_info)%f '
-RPS1+="%237F%n@%M%f"
-# if (( $+functions[virtualenv_prompt_info] )); then
-#   RPS1+='$(virtualenv_prompt_info)'
-# fi
-
-PS2="%4F${BOXRTD}%3F%B%_%b%f"
-RPS2="%3F%B%^%b%f"
-
-PS4="%4F${BOXRTD}%3F%x:%i>"
-
-# RPS2=$RPROMPT2
-## Spelling correction
-# SPROMPT 
-
-function dtl::chpwd () {
-    print "CHPWD"
-    # =ls # =x resolve x to path
-    ls
 }
 
 function dtl::precmd () {
@@ -213,12 +209,14 @@ function dtl::precmd () {
 
 function dtl::preexec () {
     # local preexec_prefix="${BOX[18]}${BOX[4]}PREEXEC${BOX[2]}${BOX[4]}${DATE}"
-    local preexec_prefix="${BOXRT}${BOXL}${DATE}${BOXR}"
-    dtl::rule "$preexec_prefix"
+    # local preexec_prefix="${BOXRT}${BOXL}${DATE}${BOXR}"
+    # dtl::rule "$preexec_prefix"
+
+    local preexec_prefix="%4F${BOXRT}${BOXL}${DATE}%f"
+    print -P "$preexec_prefix"
     print
 }
 
-# add-zsh-hook chpwd dtl::chpwd # after cd execute ls
 add-zsh-hook precmd dtl::precmd # execute precmd
 add-zsh-hook preexec dtl::preexec # execute preexec
 
